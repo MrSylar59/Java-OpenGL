@@ -55,11 +55,24 @@ public class Main
         // On garde notre fenêtre ouverte tant qu'on a pas terminé avec notre programme
         while(!glfwWindowShouldClose(window))
         {
+            processInput(window);
+
+            // On vide le buffer de couleur à chaque boucle de rendue
+            glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
 
         // On ferme correctement notre fenêtre
         glfwTerminate();
+    }
+
+    // Permet de gérer les entrées clavier
+    private static void processInput(long window)
+    {
+        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
     }
 }
