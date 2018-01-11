@@ -20,21 +20,6 @@ public class Main
 {
     public static void main(String[] args)
     {
-
-         String vShader = "#version 330 core\n" +
-                        "layout (location = 0) in vec3 aPos;\n" +
-                        "void main()\n" +
-                        "{\n" +
-                            "gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n" +
-                        "}";
-
-         String fShader = "#version 330 core\n" +
-                        "out vec4 FragColor;\n" +
-                        "void main()\n" +
-                        "{\n" +
-                            "FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n" +
-                        "}";
-
         // Code minimal pour initialiser GLFW
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -70,7 +55,9 @@ public class Main
             }
         });
 
-        //On génère notre vertex shader
+
+        // LE SHADER EST GÉRÉ DANS SA PROPRE CLASS
+        /*//On génère notre vertex shader
         int vertexShader = glCreateShader(GL_VERTEX_SHADER);
         //On récupère le code source du shader
         glShaderSource(vertexShader, vShader);
@@ -107,13 +94,16 @@ public class Main
 
         //Une fois l'étape du linking passé, nous n'avons plus besoin des shaders
         glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        glDeleteShader(fragmentShader);*/
+
+        Shader shaderProgram = new Shader("shaders/vertex.vs", "shaders/fragment.fs");
 
         //Données composant les données sur nos vertexes
         float[] verts = {
-                -0.5f, -0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f,
-                0.0f,  0.5f, 0.0f
+                // positions        // couleurs
+                -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bas droite
+                 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bas gauche
+                 0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f  // haut
         };
 
         //On génère un VBO
@@ -130,8 +120,13 @@ public class Main
         glBufferData(GL_ARRAY_BUFFER, verts, GL_STATIC_DRAW);
 
         //Nous renseignons OpenGL sur la manière dont il doit interprêter nos vertexes
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+        //Gestion de la position
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 6*Float.BYTES, 0);
         glEnableVertexAttribArray(0);
+
+        //Gestion de la couleur
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 6*Float.BYTES, 3*Float.BYTES);
+        glEnableVertexAttribArray(1);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
@@ -144,8 +139,17 @@ public class Main
             glClearColor(0.2f, 0.3f, 0.8f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);// NB : il faut clear avant de dessiner !
 
+            // On va générer une couleur et la passer à notre shader
+            //double time = glfwGetTime();
+            //float color = ((float)Math.sin(time) / 2.0f) + 0.5f;
+            //int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+
             //A présent, nous pouvons unitiliser notre programme de shader dans OpenGL
-            glUseProgram(shaderProgram);
+            shaderProgram.use();
+
+            //On passe notre couleur à notre programme de shader
+            //glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
+
             glBindVertexArray(VAO);
             //Nous pouvons enfin dessiner notre forme primitive !
             glDrawArrays(GL_TRIANGLES, 0, 3);
