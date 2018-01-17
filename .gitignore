@@ -24,3 +24,5 @@ hs_err_pid*
 #ItelliJ IDEA config files
 .idea/*
 *.iml
+
+*.db

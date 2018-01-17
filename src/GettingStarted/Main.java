@@ -10,7 +10,7 @@ import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL14.*;
+import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -31,16 +31,18 @@ public class Main
     {
         // Code minimal pour initialiser GLFW
         glfwInit();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Nécessaire pour initialiser sous MacOS
+
+        // utile pour renvoyer les error codes
         glfwSetErrorCallback(new GLFWErrorCallback() {
             @Override
             public void invoke(int error, long description) {
                 System.out.println(error);
             }
         });
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Nécessaire pour initialiser sous MacOS
 
         // Code pour créer la fenêtre GLFW
         long window = glfwCreateWindow(800, 600, "Learn-OpenGL", NULL, NULL);
@@ -121,17 +123,17 @@ public class Main
                  0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f  // haut
         };
 
-        int[] indices = {
-                0, 1, 3,
-                1, 2, 3
-        };
-
         float[] recVerts = {
                 // positions        // couleurs       // texCoords
                  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // haut droit
-                 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // haut gauche
+                 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bas droit
                 -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bas gauche
-                -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // bas droit
+                -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // haut gauche
+        };
+
+        int[] indices = {
+                0, 1, 3, //Premier triangle
+                1, 2, 3  //Second triangle
         };
 
         //Données concernant notre texture (doit être entre 0 et 1)
@@ -140,31 +142,6 @@ public class Main
                 1.0f, 0.0f,     // bas droite
                 0.5f, 1.0f      // haut
         };*/
-
-        //On choisi le mode d'afficheage de notre texture si coordonnées différentes de [0,1]
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-
-        //Dans le cas où on veut afficher une couleur unie si les coordonnées ne sont pas dans [0,1]
-        /*float[] borderColor = {1.0f, 1.0f, 0.0f, 1.0f};
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);*/
-
-        //On définit comment openGL doit scale down et scale up une image
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        //On créer les buffer dont on a besoin pour charger notre image
-        MemoryStack stack = stackPush();
-
-        IntBuffer w = stack.mallocInt(1);
-        IntBuffer h = stack.mallocInt(1);
-        IntBuffer comp = stack.mallocInt(1);
-
-        //On charge notre image
-        ByteBuffer data = stbi_load("res/container.jpg", w, h, comp, 0);
-
-        //On créer notre texture OpenGL
-        int texture = glGenTextures();
 
         //On génère un VBO
         int VBO = glGenBuffers();
@@ -198,20 +175,72 @@ public class Main
         glVertexAttribPointer(2, 2, GL_FLOAT, false, 8*Float.BYTES, 6*Float.BYTES);
         glEnableVertexAttribArray(2);
 
+        //On unbind nos buffers
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+        //--------------------------------------------------------------------------------------------------------------
+        //On créer notre texture OpenGL
+        int texture = glGenTextures();
+
         // On bind notre texture
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        //Maintenant que la texture est bind on peut la générer et créer ses mipmaps
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w.get(), h.get(), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(texture);
+        //On choisi le mode d'afficheage de notre texture si coordonnées différentes de [0,1]
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+        //Dans le cas où on veut afficher une couleur unie si les coordonnées ne sont pas dans [0,1]
+        /*float[] borderColor = {1.0f, 1.0f, 0.0f, 1.0f};
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);*/
+
+        //On définit comment openGL doit scale down et scale up une image
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        //On créer les buffer dont on a besoin pour charger notre image
+        MemoryStack stack = stackPush();
+
+        IntBuffer w = stack.mallocInt(2);
+        IntBuffer h = stack.mallocInt(2);
+        IntBuffer comp = stack.mallocInt(2);
+
+        stbi_set_flip_vertically_on_load(true);
+
+        //On charge notre image
+        ByteBuffer data = stbi_load("res/container.jpg", w, h, comp, 0);
+
+        //Maintenant que la texture est bind on peut la générer et créer ses mipmaps
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w.get(0), h.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, data); // en théorie il faut tester si data n'est pas NULL
+        glGenerateMipmap(GL_TEXTURE_2D);
 
         //On libère la mémoire de notre image
         stbi_image_free(data);
 
-        //On unbind nos buffers
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+        //----|On créer une nouvelle texture|----//
+
+        int texture2 = glGenTextures();
+
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        data = stbi_load("res/awesomeface.jpg", w, h, comp, 0);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w.get(), h.get(), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        stbi_image_free(data);
+
+        //On explique à OpenGL quelle texture appartient à quelle sampler
+        shaderProgram.use();
+        shaderProgram.setInt("texture1", 0);
+        shaderProgram.setInt("texture2", 1);
+
+        //--------------------------------------------------------------------------------------------------------------
 
         // On garde notre fenêtre ouverte tant qu'on a pas terminé avec notre programme
         while(!glfwWindowShouldClose(window))
@@ -232,8 +261,14 @@ public class Main
             //On passe notre couleur à notre programme de shader
             //glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
 
+            //On active la texture que l'on souhaite utiliser
+            glActiveTexture(GL_TEXTURE0);
             //On utilise notre texture
             glBindTexture(GL_TEXTURE_2D, texture);
+
+            //On active notre deuxième texture
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture2);
             
             glBindVertexArray(VAO);
             //Nous pouvons enfin dessiner notre forme primitive !
