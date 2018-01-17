@@ -1,14 +1,22 @@
 package GettingStarted;
 
+import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.stb.STBImage.*;
 
 /**
  * Author : Thomas
@@ -18,10 +26,17 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 public class Main
 {
+
     public static void main(String[] args)
     {
         // Code minimal pour initialiser GLFW
         glfwInit();
+        glfwSetErrorCallback(new GLFWErrorCallback() {
+            @Override
+            public void invoke(int error, long description) {
+                System.out.println(error);
+            }
+        });
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -106,10 +121,57 @@ public class Main
                  0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f  // haut
         };
 
+        int[] indices = {
+                0, 1, 3,
+                1, 2, 3
+        };
+
+        float[] recVerts = {
+                // positions        // couleurs       // texCoords
+                 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // haut droit
+                 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // haut gauche
+                -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bas gauche
+                -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // bas droit
+        };
+
+        //Données concernant notre texture (doit être entre 0 et 1)
+        /*float[] texCoords = {
+                0.0f, 0.0f,     // bas gauche
+                1.0f, 0.0f,     // bas droite
+                0.5f, 1.0f      // haut
+        };*/
+
+        //On choisi le mode d'afficheage de notre texture si coordonnées différentes de [0,1]
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+        //Dans le cas où on veut afficher une couleur unie si les coordonnées ne sont pas dans [0,1]
+        /*float[] borderColor = {1.0f, 1.0f, 0.0f, 1.0f};
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);*/
+
+        //On définit comment openGL doit scale down et scale up une image
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        //On créer les buffer dont on a besoin pour charger notre image
+        MemoryStack stack = stackPush();
+
+        IntBuffer w = stack.mallocInt(1);
+        IntBuffer h = stack.mallocInt(1);
+        IntBuffer comp = stack.mallocInt(1);
+
+        //On charge notre image
+        ByteBuffer data = stbi_load("res/container.jpg", w, h, comp, 0);
+
+        //On créer notre texture OpenGL
+        int texture = glGenTextures();
+
         //On génère un VBO
         int VBO = glGenBuffers();
         //On génère un VAO de cette manière
         int VAO = glGenVertexArrays();
+        //On génère un EBO
+        int EBO = glGenBuffers();
 
         // On bind notre VAO
         glBindVertexArray(VAO);
@@ -117,17 +179,37 @@ public class Main
         //On bind notre buffer
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         //On copie les données de nos vertexes dans notre buffer
-        glBufferData(GL_ARRAY_BUFFER, verts, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, recVerts, GL_STATIC_DRAW);
+
+        // On s'occupe de notre EBO ici
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW);
 
         //Nous renseignons OpenGL sur la manière dont il doit interprêter nos vertexes
         //Gestion de la position
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 6*Float.BYTES, 0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 8*Float.BYTES, 0);
         glEnableVertexAttribArray(0);
 
         //Gestion de la couleur
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 6*Float.BYTES, 3*Float.BYTES);
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 8*Float.BYTES, 3*Float.BYTES);
         glEnableVertexAttribArray(1);
 
+        //Gestion de la texture
+        glVertexAttribPointer(2, 2, GL_FLOAT, false, 8*Float.BYTES, 6*Float.BYTES);
+        glEnableVertexAttribArray(2);
+
+        // On bind notre texture
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        //Maintenant que la texture est bind on peut la générer et créer ses mipmaps
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w.get(), h.get(), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(texture);
+
+
+        //On libère la mémoire de notre image
+        stbi_image_free(data);
+
+        //On unbind nos buffers
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
@@ -150,9 +232,12 @@ public class Main
             //On passe notre couleur à notre programme de shader
             //glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
 
+            //On utilise notre texture
+            glBindTexture(GL_TEXTURE_2D, texture);
+            
             glBindVertexArray(VAO);
             //Nous pouvons enfin dessiner notre forme primitive !
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
             glfwSwapBuffers(window);
             glfwPollEvents();
@@ -161,6 +246,7 @@ public class Main
         //On supprime nos ressources car on en a plus besoin
         glDeleteVertexArrays(VAO);
         glDeleteBuffers(VBO);
+        glDeleteBuffers(EBO);
 
         // On ferme correctement notre fenêtre
         glfwTerminate();
