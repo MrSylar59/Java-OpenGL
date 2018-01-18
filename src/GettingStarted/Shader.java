@@ -1,5 +1,7 @@
 package GettingStarted;
 
+import maths.Matrix4f;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,7 +17,8 @@ import static org.lwjgl.opengl.GL20.*;
  * Project : Java-OpenGL
  */
 
-public class Shader {
+public class Shader
+{
     private int ID;
 
     public Shader(String vertPath, String fragPath)
@@ -89,8 +92,13 @@ public class Shader {
         glUniform1i(glGetUniformLocation(ID, name), value);
     }
 
-    public void setFloat(String name, int value)
+    public void setFloat(String name, float value)
     {
         glUniform1f(glGetUniformLocation(ID, name), value);
+    }
+
+    public void setMatrix(String name, Matrix4f mat)
+    {
+        glUniformMatrix4fv(glGetUniformLocation(ID, name), false, mat.toArray());
     }
 }

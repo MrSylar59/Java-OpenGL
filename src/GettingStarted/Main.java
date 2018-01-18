@@ -1,5 +1,7 @@
 package GettingStarted;
 
+import maths.Matrix4f;
+import maths.Vector4f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.opengl.GL;
@@ -26,7 +28,6 @@ import static org.lwjgl.stb.STBImage.*;
 
 public class Main
 {
-
     public static void main(String[] args)
     {
         // Code minimal pour initialiser GLFW
@@ -242,6 +243,14 @@ public class Main
 
         //--------------------------------------------------------------------------------------------------------------
 
+        //----|On joue avec nos matrices maintenant|----//
+        /*Matrix4f trans = new Matrix4f()
+                .identity()
+                .rotate(90, new Vector4f(0f, 0f, 1f, 0f))
+                .scale(0.5f, 0.5f, 0.5f);
+
+        shaderProgram.setMatrix("trans", trans);*/
+
         // On garde notre fenêtre ouverte tant qu'on a pas terminé avec notre programme
         while(!glfwWindowShouldClose(window))
         {
@@ -273,6 +282,12 @@ public class Main
             glBindVertexArray(VAO);
             //Nous pouvons enfin dessiner notre forme primitive !
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+            Matrix4f trans = new Matrix4f().identity()
+                    .translate(0.5f, -0.5f, 0.0f)
+                    .rotate((float)glfwGetTime()*15, new Vector4f(0.0f, 0.0f, 1.0f, 0.0f));
+
+            shaderProgram.setMatrix("trans", trans);
 
             glfwSwapBuffers(window);
             glfwPollEvents();
