@@ -50,8 +50,7 @@ public class Vector4f
     {
         if(s != 0)
             return new Vector4f(this.x / s, this.y / s, this.z / s, this.w / s);
-        else
-            return this; //On peut afficher un message d'erreur ici
+        return this; //On peut afficher un message d'erreur ici
     }
 
     //Opération entre vecteurs
@@ -84,6 +83,14 @@ public class Vector4f
     public float length()
     {
         return (float)Math.sqrt(this.squareLength());
+    }
+
+    public Vector4f normalize()
+    {
+        float length = this.length();
+        if(length != 0)
+            return new Vector4f(this.x / length, this.y / length, this.z / length, this.w / length);
+        return this;
     }
 
     public String toString()

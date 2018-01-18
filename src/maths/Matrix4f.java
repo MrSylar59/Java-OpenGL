@@ -66,7 +66,7 @@ public class Matrix4f
     public Matrix4f sub(Matrix4f o)
     {
         for(int i = 0; i < matrix.length; i++)
-            matrix[i] += o.matrix[i];
+            matrix[i] -= o.matrix[i];
         return this;
     }
 
